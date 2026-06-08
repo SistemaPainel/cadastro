@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Alocação Dinâmico</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        :root { --primary-red: #d32f2f; --bg-body: #f9f9fb; --border-color: #e0e0e0; --text-main: #333; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-body); padding: 20px; color: var(--text-main); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; }
+        .sub-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 20px; }
+        .btn-group { display: flex; gap: 10px; width: auto; }
+        .btn { border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; gap: 8px; text-transform: uppercase; justify-content: center; align-items: center; }
+        .btn-save { background-color: var(--primary-red); color: white; }
+        .btn-clear { background-color: #757575; color: white; }
+        .btn-clear:hover { background-color: #616161; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; }
+        .input-box { margin-bottom: 10px; }
+        .input-box label { display: block; font-size: 9px; font-weight: 700; margin-bottom: 4px; color: #555;}
+        
+        /* Ajustes otimizados para o Select2 e inputs normais */
+        .input-box select, .input-box input { width: 100%; padding: 7px; border: 1px solid var(--border-color); font-size: 11px; border-radius: 4px; outline: none; background-color: #fafafa;}
+        
+        /* Estilos da caixa principal do Select2 */
+        .select2-container .select2-selection--single { height: 32px; border: 1px solid var(--border-color); border-radius: 4px; background-color: #fafafa;}
+        
+        /* Texto selecionado com formatação em elipse (...) para não deformar a caixa */
+        .select2-container--default .select2-selection--single .select2-selection__rendered { 
+            line-height: 30px; 
+            font-size: 11px; 
+            font-weight: bold; 
+            color: var(--text-main);
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap;
+            padding-right: 25px; /* Evita que o texto sobreponha a seta */
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 30px; }
+        
+        /* Menu dropdown (lista aberta) do Select2 */
+        .select2-dropdown {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Campo de busca interno do Select2 */
+        .select2-search--dropdown .select2-search__field {
+            font-size: 11px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        /* Controle de altura da lista do Select2 para exibir ~16 itens */
+        .select2-container--default .select2-results > .select2-results__options {
+            max-height: 400px;
+        }
+
+        /* Opções da lista (nomes dos modelos) */
+        .select2-results__option {
+            font-size: 10px; /* Reduzido para acomodar nomes industriais longos */
+            padding: 6px 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #444;
+        }
+
+        /* Destaque ao passar o mouse nas opções */
+        .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+            background-color: var(--primary-red);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .filter-box { display: flex; flex-direction: column; min-width: 150px; }
+        .filter-box label { font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
+        .filter-box select { padding: 8px; font-weight: bold; border-radius: 5px; border: 1px solid #ccc; font-size: 14px;}
+        .actions-container { display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap; justify-content: flex-end; }
+        
+        /* Modais */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .custom-modal-box { background: #fff; padding: 25px 20px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 320px; max-width: 90%; text-align: center; }
+        .custom-modal-box h3 { margin-top: 0; font-size: 15px; color: #333; margin-bottom: 20px; font-weight: 600; white-space: pre-line; }
+        .custom-modal-input { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; box-sizing: border-box; outline: none; font-weight: bold; }
+        .custom-modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .custom-modal-actions button { padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; flex: 1; text-transform: uppercase; font-size: 12px; }
+        .btn-cancelar { background: #e0e0e0; color: #444; }
+        .btn-confirmar { background: #d32f2f; color: #fff; }
+        .config-btn { background: transparent; border: none; font-size: 24px; cursor: pointer; transition: 0.3s; padding: 5px; }
+        .config-panel { width: 550px !important; max-width: 95% !important; text-align: left !important; }
+        .config-grid { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
+        .config-section { flex: 1; border: 1px solid var(--border-color); padding: 15px; border-radius: 6px; background: #fafafa; min-width: 200px;}
+        .config-section h4 { margin-top: 0; margin-bottom: 10px; font-size: 13px; color: var(--primary-red); border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        #configMsg { height: 15px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+        
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .sub-header { flex-direction: column; align-items: flex-start; }
+            .actions-container { width: 100%; justify-content: flex-start; }
+            .filter-box { width: 100%; }
+            .btn-group { width: 100%; }
+            .btn-save, .btn-clear { flex-grow: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <h1>Controle de Alocação</h1>
+            <button class="config-btn" onclick="verificarSenhaConfig()" title="Configurações do Sistema">⚙️</button>
+        </div>
+    </header>
+    
+    <div class="sub-header">
+        <div>
+            <h2>🔖 Configuração Dinâmica</h2>
+            <p>Dados centralizados na nuvem. Selecione com busca inteligente.</p>
+        </div>
+        <div class="actions-container">
+            <div class="filter-box">
+                <label>GRUPO</label>
+                <select id="filtroGrupo" onchange="trocarGrupo()">
+                    <option value="Grupo 1">Grupo 1</option><option value="Grupo 2">Grupo 2</option>
+                    <option value="Grupo 3">Grupo 3</option><option value="Grupo 4">Grupo 4</option>
+                    <option value="Grupo 5">Grupo 5</option><option value="Grupo 6">Grupo 6</option>
+                    <option value="Grupo 7">Grupo 7</option><option value="Grupo 8">Grupo 8</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button id="btnLimpar" class="btn btn-clear" onclick="limparAlocacao()">🗑️ Limpar</button>
+                <button id="btnSalvar" class="btn btn-save" onclick="salvarAlocacao()">💾 Salvar Alocação</button>
+            </div>
+        </div>
+    </div>
+    <div id="msgCarregando" style="display:none; color: #d32f2f; font-weight: bold; margin-bottom: 10px;">⌛ Sincronizando com o Firebase...</div>
+    <div class="grid-container" id="stationGrid"></div>
+
+    <div id="customModalOverlay" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <h3 id="customModalMessage">Mensagem</h3>
+            <input type="password" id="customModalInput" class="custom-modal-input" placeholder="Digite seu crachá..." style="display:none;" autocomplete="off">
+            <div class="custom-modal-actions">
+                <button id="customModalBtnCancel" class="btn-cancelar">Cancelar</button>
+                <button id="customModalBtnOk" class="btn-confirmar">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="configModalOverlay" class="custom-modal-overlay">
+        <div class="custom-modal-box config-panel">
+            <h3 style="text-align: center; font-size: 18px;">⚙️ Painel de Configurações Global</h3>
+            <div id="configMsg"></div>
+            <div class="config-grid">
+                <div class="config-section">
+                    <h4>📐 Adicionar Tamanho</h4>
+                    <select id="configModeloSelect" class="input-box select2-config" style="width:100%;"></select>
+                    <br><br>
+                    <input type="text" id="configNovoTamanho" class="input-box" placeholder="Ex: 38/39, 10X..." autocomplete="off">
+                    <button class="btn-confirmar" style="width:100%; padding: 8px;" onclick="adicionarTamanho()">Salvar Tamanho</button>
+                </div>
+                <div class="config-section">
+                    <h4>👤 Adicionar Funcionário</h4>
+                    <input type="number" id="configNovoCracha" class="input-box" placeholder="Nº do Crachá..." autocomplete="off">
+                    <input type="text" id="configNovoNome" class="input-box" placeholder="Nome do Funcioná´
+                    rio..." autocomplete="off">
+                    <button class="btn-confirmar" style="width:100%; padding: 8px;" onclick="adicionarCracha()">Salvar Crachá</button>
+                </div>
+            </div>
+            <div class="custom-modal-actions">
+                <button onclick="fecharConfig()" class="btn-cancelar" style="flex: none; width: 100%;">Concluir e Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // CREDENCIAIS DO FIREBASE
+        // =========================================================================
+        const FIREBASE_URL = "https://chat-a1d70.firebaseio.com";
+        const FIREBASE_SECRET = "";
+        const AUTH = FIREBASE_SECRET && !/^https?:\/\//i.test(FIREBASE_SECRET)
+            ? `?auth=${encodeURIComponent(FIREBASE_SECRET)}` : "";
+// =========================================================================
+        // =========================================================================
+
+        const defaultUsuarios = { "4014490": "Francisco Eduardo" , "4019841": "RODRIGO SANTOS","4019523": "Maria Dias", "4019524": "Rafael Matos","4020729": "Rafael Miranda"};
+        const defaultDataMap = {
+            "004 SL BOR": ["36", "38", "42", "43/44", "39/40", "34/35", "47/48", "41", "45", "37", "46"],
+            "ADIZERO DRIVE RC SL BOR": ["11/12", "3X/4X", "5/6", "6X/7X", "8/9", "9X/10X"],
+            "AIR MAX NUAXIS SL BOR": ["10", "6", "7", "7,5", "8,5", "9,5", "4,5", "5,5", "12", "4", "11"],
+            "AIR WINFLO 11 SL BOR": ["10", "11", "4X", "5X", "6", "7", "7X", "8X", "9X", "4", "12"],
+            "AIR WINFLO 12 SL BOR": ["10", "11", "12", "4", "4,5", "5,5", "6", "7", "7,5", "8,5", "9,5"],
+            "AIR WINFLO 9 BOR": ["9X", "7", "7X", "10", "8X", "6", "12", "11"],
+            "BUMP 21 ID SL": ["34/35", "40", "42", "43", "41", "38/39", "37", "44/45", "36", "46"],
+            "BUMP 24 HG TIPO Z SL BOR": ["38/39", "41", "42", "44/45", "40", "37", "34/35", "43", "36", "46"],
+            "BUMP 24 ID TIPO Z SL BOR": ["38/39", "42", "34/35", "40", "43", "44/45", "37", "46", "36", "41"],
+            "BUMP 26 ID SL BOR": ["40", "38/39", "43", "42", "41", "36", "37", "44/45", "46", "34/35"],
+            "COURT VISION ALTA SL": ["5,5", "6", "7", "7,5", "8,5", "9", "10", "11", "4"],
+            "CPO HYBRID SL BOR": ["41", "43", "44", "37", "40", "42", "39", "38"],
+            "CT300 SL BOR": ["42", "41", "38", "44", "40", "39", "43"],
+            "D0021 SL BOR": ["35", "36", "37", "38", "39", "40", "43", "42", "44", "34", "41", "46", "45"],
+            "D0023 SL BOR": ["36", "37", "38", "39/40", "41", "42", "46", "45", "43/44", "34/35"],
+            "D003 SL BOR": ["37", "39", "43", "38", "41", "40", "36", "35", "44", "34", "42"],
+            "D0088 SL BOR": ["34/35", "36", "37", "39/40", "41", "45", "46", "47/48", "42", "43/44", "38"],
+            "DOWNSHIFTER 12 BOR": ["6", "4X", "5X", "7", "10", "9X", "7X", "12", "8X", "11", "4", "5", "10X", "3X", "6X", "11X", "8", "14", "13", "9"],
+            "DOWNSHIFTER 14 SL BOR": ["10", "11", "12", "4", "4,5", "5,5", "6", "7", "7,5", "8,5", "9,5"],
+            "DOWNSHIFTER13 SL BOR": ["4X", "5X", "6", "7X", "8X", "4", "10", "7", "11", "12", "5", "9X"],
+            "DYNABLAST 6 SL BOR": ["11X", "9", "9X", "8", "7X", "5X", "10X", "6", "5", "12", "4", "8X", "7"],
+            "FILA 2121 SL BOR": ["42", "38/39", "41", "43", "44/45", "36", "34/35", "37", "40", "33"],
+            "FILA 2245 BOR": ["37", "36", "42", "38/39", "41", "33", "34/35", "43", "40", "44/45"],
+            "FILA 2402 BICO SL BOR": ["42", "43", "40", "37", "33", "41", "36", "44/45", "34/35", "38/39"],
+            "FILA 2402 SL BOR": ["38/39", "34/35", "40", "37", "33", "36", "44/45", "41", "43", "42"],
+            "FILA 2412 SL BOR": ["40", "36", "34/35", "43", "38/39", "41", "42", "37", "44/45", "33"],
+            "FILA 2421 SL BOR": ["38/39", "40", "41", "43", "44/45", "42", "37", "36", "34/35", "33"],
+            "FILA 2423 SL BOR": ["37", "33", "38/39", "40", "36", "34/35", "42", "43", "41", "44/45"],
+            "FILA 2502 BICOLOR SL BOR": ["38/39", "40", "41", "42", "37", "43", "44/45"],
+            "FILA 2503 SL BOR": ["40", "43", "38/39", "42", "41"],
+            "FILA 2510 SL BOR": ["38/39", "42", "41", "40", "43", "36", "34/35", "44/45", "37", "47", "46", "48"],
+            "FILA 2521 BICOLOR SL BOR": ["42", "43", "44/45", "40", "41", "38/39"],
+            "FILA 2525 BICOLOR BOR SL": ["T4", "T1", "T2", "T3", "T5"],
+            "FILA 2602 SL BOR": ["36", "38/39", "40", "41", "44/45", "42", "37", "43", "34/35", "33"],
+            "FILA 2639 SL BOR": ["38/39", "37", "42", "40", "34/35", "36", "43", "41", "44/45"],
+            "FLEX TRAIN SL BOR": ["10", "11", "12", "5,5", "6", "7", "7,5", "8,5", "9,5", "4,5", "4"],
+            "FURON TEKELA IN SL BORR": ["38", "43", "44", "36/37", "40", "39", "41/42", "34/35"],
+            "FURON TEKELA TF SL BORR": ["38", "39", "41/42", "40", "34/35", "44", "43", "36/37"],
+            "GEL EQUATION SL BOR": ["10X", "5X", "7", "9X", "12", "8", "6", "4", "9", "11X", "7X", "5", "8X"],
+            "GEL-BACKHAND CLAY 2": ["11X", "12", "5X", "7", "7X", "8X", "9", "9X", "8", "10X", "6", "5", "4"],
+            "GEL-BACKHAND2 SL BOR": ["10X", "11X", "6", "7X", "8X", "5X", "8", "7", "9X", "9", "5", "12", "4"],
+            "GEL-NAGOYA 4 SL BOR": ["10X", "11X", "4", "5", "5X", "6", "7", "8", "9", "9X", "7X", "12", "8X"],
+            "GEL-NAGOYA 7 SL BOR": ["10X", "11X", "12", "5", "5X", "6", "7", "9", "9X", "8X", "7X", "4", "8"],
+            "GEL-PULSE 15 SL BOR": ["6", "8X", "11X", "10X", "5", "7", "9X", "12", "8", "7X", "9", "4", "5X"],
+            "GEL-QUANTUM 180 5": ["11X", "7X", "5X", "4", "7", "6", "8", "10X", "12", "5", "9X", "9", "8X"],
+            "GEL-QUANTUM 360 5": ["10X", "9", "7X", "7", "5", "9X", "12", "11X", "5X", "4", "8", "6", "8X"],
+            "GRAND COURT ALPHA BIC SL BOR": ["6", "9,5", "8", "5,5", "4", "4,5", "6,5", "9", "10,5", "11,5", "7", "12"],
+            "GRAND COURT ALPHA SL BOR": ["10,5", "12", "7", "6", "6,5", "8", "9,5", "9", "11,5"],
+            "HANDBALL SPEZIAL SL BOR": ["4", "4,5", "6", "7", "8", "6,5", "5,5", "9,5", "9", "11,5", "10,5", "12"],
+            "HEELPAD HG SL BOR": ["36", "42", "44", "45/46", "39", "40", "34/35", "38", "37", "41", "43"],
+            "HEELPAD ID INF SL BOR": ["33", "34", "30", "35", "31", "28", "36", "29", "32"],
+            "HG STEALTH 23 SL BOR": ["43", "40", "41", "37", "39", "38", "42", "44"],
+            "HG VORTEX SL BOR": ["38", "40", "43", "45", "42", "41", "39", "44", "37", "35", "46", "36", "34"],
+            "HYPER DIAMOND ID SL BOR": ["37", "38", "39", "40", "41", "42", "43", "44"],
+            "ID CUSHION SL BOR": ["39", "38", "44", "37", "41", "40", "42", "43"],
+            "ID HEELPAD SL BOR": ["36", "39", "37", "40", "43", "41", "42", "38", "44", "45/46", "34/35"],
+            "ID PRECISION SL BOR": ["42", "39", "37", "41", "43", "44", "40", "38"],
+            "ID PRO 5 SL BORRACHA": ["34/35", "41", "36", "39", "40", "44", "38", "43", "42", "37", "45/46"],
+            "ID STABLE SL BOR": ["38/39", "40", "41", "42", "46", "44/45", "43", "36", "37", "34/35"],
+            "ID STEALTH 23 SL BOR": ["38", "43", "42", "37", "39", "44", "40", "41"],
+            "ID VORTEX INF SL BOR": ["33", "34", "36", "32", "31", "30", "28", "29", "24", "27", "26", "25", "35"],
+            "ID VORTEX SL BOR": ["39", "40", "41", "42", "43", "46", "38", "37", "45", "44"],
+            "JR VAPOR 15 CL IC": ["2/2X", "4/4X", "3/3X", "5/5X", "1/1X"],
+            "JR VAPOR 15 CL IC BICOLOR": ["3/3X", "4/4X", "1/1X", "2/2X", "5/5X"],
+            "JR VAPOR 15 CL TF": ["3/3X", "4/4X", "1/1X", "2/2X", "5/5X"],
+            "LEG 10 CLUB IC SL BO": ["10/10X", "7/7X", "8/8X", "9/9X", "11/11X", "7/7X", "12/12X", "5/5X", "6/6X", "4/4X"],
+            "LEG 10 CLUB TF SL BO": ["10/10X", "11/11X", "12/12X", "6/6X", "7/7X", "8/8X", "9/9X", "5/5X", "6/6X", "4/4X"],
+            "NB 413 SL BOR": ["34/36", "37/38", "39/40", "44", "41/42", "43"],
+            "NB471 SL BOR": ["38", "40", "36", "41", "39", "42", "34", "35", "43", "37", "44"],
+            "NB500 SL BOR": ["42", "40", "38", "37", "34", "41", "44", "39", "43", "36", "35"],
+            "NB574 SL BOR": ["43/44", "38", "40", "37", "34", "36", "42", "39", "41", "35"],
+            "NIKE QUEST 5 SL BOR": ["10", "11", "12", "6", "7", "7X", "8X", "9X", "4", "4X", "5X"],
+            "NIKE SB CHECK SL BOR": ["5,5", "7,5", "9,5", "7", "10", "12", "11", "6", "8,5", "4,5"],
+            "NIKE SB CHECK SL BOR BICOLOR": ["10,00", "11,00", "5,50", "6,00", "7,00", "8,50", "9,50", "4", "4,5", "7", "7,5", "12", "8,5", "6", "5,5", "11", "10", "9,5"],
+            "NM574 ESTABILIZADOR SL BOR": ["T1", "T2"],
+            "NM574 PALM SL BOR OVERLOCK": ["U"],
+            "NM574 REFORCO COURACA SL BOR": ["U"],
+            "NM574 SL BOR": ["41", "39", "44", "43", "40", "42", "38"],
+            "NM808 SL BOR": ["43", "39", "40", "44", "42", "38", "41"],
+            "OT PRO CLAY SL BOR": ["40,00", "41", "42", "37", "40", "43", "38/39", "34/35", "36", "44/45", "47", "46"],
+            "OT PRO SL BOR": ["43", "37", "36", "38/39", "42", "46", "40", "41", "47", "34/35", "44/45"],
+            "PLACA TESTE SL BOR": ["U"],
+            "PRIORITY SL BOR": ["10", "10X", "11", "4X", "6", "6X", "7X", "8", "8X", "9", "9X", "5X", "5", "3X", "7", "4", "12"],
+            "PRIORITY SL BOR BICOLOR": ["5X", "6", "7X", "8", "8X", "9", "9X", "7", "4", "4X", "10", "6X", "10X", "3X", "5", "12", "11"],
+            "PRO 5 TRAINER SL BOR": ["45", "41", "36", "40", "42", "38", "37", "43", "35", "34", "44", "39"],
+            "QUEST 6 BOR": ["6", "7", "7X", "8X", "4", "4X", "5X", "5", "9X", "10", "11", "12"],
+            "QUEST 7 SL BOR": ["8,5", "7", "11", "10", "9,5", "4,5", "12", "4", "6", "7,5", "5,5"],
+            "RACER TR23 SL BOR": ["7", "6,5", "9", "9,5", "11,5", "6", "8", "10,5"],
+            "RUN DEFY SL BOR": ["10", "11", "12", "4", "4,5", "5,5", "6", "7", "7,5", "8,5", "9,5"],
+            "RUN SWIFT 3 SL": ["10", "11", "12", "4X", "6", "7", "7X", "8X", "9X", "5X", "9", "11X", "4", "8", "12X", "5", "3X", "10X", "6X", "14", "13"],
+            "SAMBA OG SL BOR": ["11,5", "4", "4,5", "5,5", "6", "6,5", "7", "8", "9", "9,5", "10,5", "12"],
+            "SOLADO TNR SL BOR": ["30", "32", "35", "33", "29", "36", "31", "34", "28"],
+            "STREET STYLE 24 BOR": ["43", "42", "36", "38/39", "34/35", "37", "40", "44/45", "41"],
+            "STREETTALK BIQ SL BOR": ["5,5/6", "6,5/7", "8/9", "9X/10X", "4/4,5", "11,5/12"],
+            "STREETTALK SL BOR": ["11,5", "4,5", "5,5", "6", "6,5", "7", "8", "9", "9,5", "4", "10,5", "12"],
+            "UPTAKE 25 HG SL BOR": ["41", "44/45", "43", "46", "38/39", "40", "42", "37", "36", "34/35"],
+            "UPTAKE 25 ID SL BOR": ["38/39", "44/45", "42", "46", "43", "36", "41", "37", "40", "34/35"],
+            "VAPOR 15 CL IC SL BO": ["12/12X", "7/7X", "6/6X", "11/11X", "8/8X", "9/9X", "5/5X", "10/10X", "4/4X"],
+            "VAPOR 15 CL IC SL BO BICO": ["10/10X", "12/12X", "6/6X", "7/7X", "8/8X", "9/9X", "5/5X", "11/11X", "4/4X"],
+            "VAPOR 15 CL TF SL BO": ["10/10X", "12/12X", "6/6X", "7/7X", "8/8X", "9/9X", "5/5X", "11/11X", "4/4X"],
+            "VAPOR 15 CL TF SL BO BICO": ["10/10X", "12/12X", "6/6X", "7/7X", "8/8X", "9/9X", "5/5X", "11/11X", "4/4X"],
+            "VAZIO": ["VAZIO"],
+            "VEJA REC SL BOR": ["35"],
+        };
+
+        let dataMap = {};
+        let usuariosAutorizados = {};
+
+        // INICIALIZAÇÃO E SINCRONIZAÇÃO GLOBAL
+        async function carregarDadosGlobais() {
+            try {
+                const response = await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`);
+                const config = await response.json();
+                
+                if (config && config.dataMap) {
+                    dataMap = config.dataMap;
+                    usuariosAutorizados = config.usuarios || defaultUsuarios;
+                } else {
+                    // Se o banco estiver vazio, ele semeia com a lista gigante original
+                    dataMap = defaultDataMap;
+                    usuariosAutorizados = defaultUsuarios;
+                    await salvarConfiguracaoGlobal(); 
+                }
+            } catch (e) { 
+                console.error("Erro ao carregar do Firebase. Usando padrão local.", e); 
+                dataMap = defaultDataMap;
+                usuariosAutorizados = defaultUsuarios;
+            }
+        }
+
+        async function salvarConfiguracaoGlobal() {
+            try {
+                await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ dataMap: dataMap, usuarios: usuariosAutorizados })
+                });
+            } catch (e) { console.error("Erro ao salvar configurações no banco:", e); }
+        }
+
+        // CONFIGURAÇÕES
+        async function verificarSenhaConfig() {
+            const senha = await customPrompt("Acesso Restrito!\nDigite a senha administrativa:");
+            if (senha === "14490") abrirPainelConfig();
+            else if (senha) await customAlert("Senha incorreta!");
+        }
+
+        function abrirPainelConfig() { 
+            const selectMod = document.getElementById('configModeloSelect');
+            selectMod.innerHTML = '<option value="">Selecione o Modelo...</option>';
+            Object.keys(dataMap).sort().forEach(m => {
+                if(m !== "VAZIO") selectMod.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+            
+            document.getElementById('configModalOverlay').style.display = 'flex'; 
+            
+            // Ativa o Select2 também no painel de configurações
+            $('#configModeloSelect').select2({ placeholder: "Pesquise um modelo..." });
+        }
+
+        function fecharConfig() { document.getElementById('configModalOverlay').style.display = 'none'; }
+
+        async function adicionarTamanho() {
+            const mod = document.getElementById('configModeloSelect').value;
+            const tam = document.getElementById('configNovoTamanho').value.trim();
+            if(!mod || !tam) { mostrarMsgConfig("⚠️ Preencha modelo e tamanho.", "#d32f2f"); return; }
+            
+            if(!dataMap[mod]) dataMap[mod] = [];
+            if(!dataMap[mod].includes(tam)) {
+                dataMap[mod].push(tam);
+                dataMap[mod].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+                await salvarConfiguracaoGlobal();
+                mostrarMsgConfig("✅ Tamanho sincronizado no banco global!", "#2e7d32");
+                document.getElementById('configNovoTamanho').value = '';
+                renderizarEstacoes();
+            } else {
+                mostrarMsgConfig("⚠️ Este tamanho já existe.", "#d32f2f");
+            }
+        }
+
+        async function adicionarCracha() {
+            const cracha = document.getElementById('configNovoCracha').value.trim();
+            const nome = document.getElementById('configNovoNome').value.trim();
+            if(!cracha || !nome) { mostrarMsgConfig("⚠️ Preencha crachá e nome.", "#d32f2f"); return; }
+            usuariosAutorizados[cracha] = nome;
+            await salvarConfiguracaoGlobal();
+            // Salva também em /usuarios/{cracha} para que o monitor reconheça o usuário
+            try {
+                await fetch(`${FIREBASE_URL}/usuarios/${cracha}.json${AUTH}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ativo: true, cracha: cracha, nome: nome,
+                        permissoes: { telas: ['monitor'] }, role: 'operador'
+                    })
+                });
+            } catch(e) { console.error("Erro ao sincronizar crachá com /usuarios:", e); }
+            mostrarMsgConfig(`✅ Crachá de ${nome} salvo globalmente!`, "#2e7d32");
+            document.getElementById('configNovoCracha').value = ''; document.getElementById('configNovoNome').value = '';
+        }
+
+        // GRADE E FUNCIONAMENTO PRINCIPAL
+        const grid = document.getElementById('stationGrid');
+        
+        async function renderizarEstacoes() {
+            const grupo = document.getElementById('filtroGrupo').value;
+            const numEstacoes = (grupo === "Grupo 4" || grupo === "Grupo 5") ? 48 : 36;
+            document.getElementById('msgCarregando').style.display = 'block';
+            grid.style.opacity = '0.5';
+
+            try {
+                const response = await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`);
+                const raw = await response.json();
+                // Firebase pode devolver array (chaves numéricas sequenciais) ou objeto
+                // Normaliza para objeto { estacao: dados }
+                let dadosFirebase = {};
+                if (Array.isArray(raw)) {
+                    raw.forEach((v, i) => { if (v) dadosFirebase[i] = v; });
+                } else if (raw && typeof raw === 'object' && !raw.error) {
+                    dadosFirebase = raw;
+                }
+                
+                let modelosOptions = '<option value="">Selecionar...</option>';
+                Object.keys(dataMap).sort().forEach(m => {
+                    modelosOptions += `<option value="${m}">${m}</option>`;
+                });
+
+                grid.innerHTML = ''; 
+                for (let i = 1; i <= numEstacoes; i++) {
+                    const salvo = dadosFirebase[i]; 
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.setAttribute('data-status', salvo ? salvo.status : "parada");
+                    card.innerHTML = `
+                        <div class="card-header"><b>ESTAÇÃO ${i}</b></div>
+                        <div class="input-box">
+                            <label>MODELO</label>
+                            <select class="sel-modelo">
+                                ${modelosOptions}
+                            </select>
+                        </div>
+                        <div class="input-box">
+                            <label>TAMANHO</label>
+                            <select class="sel-tamanho">
+                                <option value="">Escolha o modelo</option>
+                            </select>
+                        </div>`;
+                    grid.appendChild(card);
+                    
+                    const selectMod = card.querySelector('.sel-modelo');
+                    if (salvo && salvo.modelo) {
+                        selectMod.value = salvo.modelo;
+                        popularTamanhos(card.querySelector('.sel-tamanho'), salvo.modelo, salvo.tamanho);
+                    }
+                }
+
+                // --- MAGIA DO SELECT2 (Busca Inteligente mantendo a lista) ---
+                $('.sel-modelo').select2({
+                    placeholder: "Pesquise ou selecione...",
+                    allowClear: true,
+                    width: '100%' // Garante que não quebre o layout do card
+                }).on('change', function() {
+                    // Quando o usuário escolhe um modelo via Select2, disparamos a função de atualizar tamanhos
+                    updateSizes(this);
+                });
+
+            } catch (e) {
+                console.error("Erro Firebase:", e);
+            } finally { 
+                document.getElementById('msgCarregando').style.display = 'none'; 
+                grid.style.opacity = '1'; 
+            }
+        }
+        
+        function updateSizes(selectElement) {
+            const val = selectElement.value;
+            const card = selectElement.closest('.card');
+            popularTamanhos(card.querySelector('.sel-tamanho'), val, "");
+        }
+        
+        function popularTamanhos(el, modelo, sel) {
+            el.innerHTML = '<option value="">Selecionar</option>';
+            if (modelo && dataMap[modelo]) {
+                dataMap[modelo].forEach(s => { 
+                    const o = document.createElement('option'); 
+                    o.value = s; o.textContent = s; 
+                    if (s === sel) o.selected = true; el.appendChild(o); 
+                });
+            }
+        }
+        
+        // SALVAR E LIMPAR
+        async function salvarAlocacao() {
+            const info = await customPrompt("Para salvar a alocação do " + document.getElementById('filtroGrupo').value + ",\ninforme seu crachá:");
+            const crachaDigitado = info ? info.trim() : "";
+            const nomeUsuario = usuariosAutorizados[crachaDigitado];
+            
+            if (!nomeUsuario) { await customAlert("Acesso negado. Crachá inválido ou não cadastrado."); return; }
+
+            const btn = document.getElementById('btnSalvar'); 
+            btn.innerText = "⌛ Salvando..."; 
+            btn.disabled = true;
+
+            const grupo = document.getElementById('filtroGrupo').value;
+            const agora = new Date().toLocaleString('pt-BR');
+
+            try {
+                // BUSCAR DADOS ATUAIS PARA PRESERVAR STATUS E PRS MANUAIS
+                const respAtual = await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`);
+                const dadosAtuais = await respAtual.json() || {};
+
+                const alocacaoObj = {};
+                
+                document.querySelectorAll('.card').forEach((c, i) => {
+                    const m = c.querySelector('.sel-modelo').value;
+                    const t = c.querySelector('.sel-tamanho').value;
+                    const estacaoNum = i + 1;
+
+                    if(m && t) {
+                        // PRESERVA STATUS E PR MANUAL SE A ESTAÇÃO JÁ EXISTIR NO BANCO
+                        const statusAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].status) ? dadosAtuais[estacaoNum].status : c.getAttribute('data-status') || "parada";
+                        const prManualAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].prManual !== undefined) ? dadosAtuais[estacaoNum].prManual : 0;
+                        const prTimeAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].prTime) ? dadosAtuais[estacaoNum].prTime : "";
+
+                        alocacaoObj[estacaoNum] = { 
+                            grupo: grupo, estacao: estacaoNum, modelo: m, tamanho: t, 
+                            status: statusAtual, dataHora: agora, cracha: crachaDigitado,
+                            prManual: prManualAtual, prTime: prTimeAtual 
+                        };
+                    }
+                });
+
+                await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`, { 
+                    method: 'PUT', 
+                    body: JSON.stringify(alocacaoObj) 
+                });
+
+                // ── Notifica o Monitor via localStorage (cross-tab, mesmo origin) ──
+                localStorage.setItem('alocacaoGlobalSalva', JSON.stringify({
+                    grupo: grupo,
+                    dataHora: agora,
+                    cracha: crachaDigitado
+                }));
+
+                // ── Grava log global no Firebase para o menu de logs do Monitor ──
+                try {
+                    await fetch(`${FIREBASE_URL}/logs.json${AUTH}`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            grupo: grupo,
+                            operador: nomeUsuario,
+                            cracha: crachaDigitado,
+                            dataHora: agora,
+                            timestamp: Date.now()
+                        })
+                    });
+                } catch(e) { /* log não crítico */ }
+
+                await customAlert(`Salvo com sucesso e Sincronizado, ${nomeUsuario}!`); 
+                renderizarEstacoes();
+            } catch (e) { 
+                await customAlert('Erro de conexão ao tentar salvar.'); 
+            } finally { 
+                btn.innerText = "💾 Salvar Alocação"; 
+                btn.disabled = false; 
+            }
+        }
+
+        async function limparAlocacao() {
+            const confirmar = await new Promise(resolve => {
+                const o = document.getElementById('customModalOverlay');
+                document.getElementById('customModalMessage').innerText = "Tem certeza que deseja limpar as seleções da tela?";
+                document.getElementById('customModalInput').style.display = 'none';
+                document.getElementById('customModalBtnCancel').style.display = 'block';
+                const b = document.getElementById('customModalBtnOk');
+                b.style.display = 'block'; b.innerText = 'Sim, Limpar'; o.style.display = 'flex';
+                b.onclick = () => { o.style.display = 'none'; resolve(true); }; 
+                document.getElementById('customModalBtnCancel').onclick = () => { o.style.display = 'none'; resolve(false); };
+            });
+
+            if (confirmar) {
+                // Limpa tanto o select nativo quanto o Select2
+                $('.sel-modelo').val(null).trigger('change');
+                document.querySelectorAll('.card').forEach(card => {
+                    if (card.querySelector('.sel-tamanho')) card.querySelector('.sel-tamanho').innerHTML = '<option value="">Selecionar</option>';
+                });
+            }
+        }
+
+        function trocarGrupo() { 
+            localStorage.setItem('ultimoGrupoSelecionado', document.getElementById('filtroGrupo').value); 
+            renderizarEstacoes(); 
+        }
+
+        function customAlert(msg) { return new Promise(resolve => { const o = document.getElementById('customModalOverlay'); document.getElementById('customModalMessage').innerText = msg; document.getElementById('customModalInput').style.display = 'none'; document.getElementById('customModalBtnCancel').style.display = 'none'; const b = document.getElementById('customModalBtnOk'); b.style.display = 'block'; b.innerText = 'Entendi'; o.style.display = 'flex'; b.onclick = () => { o.style.display = 'none'; resolve(true); }; }); }
+        function customPrompt(msg) { return new Promise(resolve => { const o = document.getElementById('customModalOverlay'); const i = document.getElementById('customModalInput'); document.getElementById('customModalMessage').innerText = msg; i.style.display = 'block'; i.value = ''; const bc = document.getElementById('customModalBtnCancel'); const bo = document.getElementById('customModalBtnOk'); bc.style.display = 'block'; bo.style.display = 'block'; bo.innerText = 'Confirmar'; o.style.display = 'flex'; i.focus(); bo.onclick = () => { o.style.display = 'none'; resolve(i.value); }; bc.onclick = () => { o.style.display = 'none'; resolve(null); }; i.onkeypress = (e) => { if(e.key === 'Enter') bo.click(); }; }); }
+        function mostrarMsgConfig(msg, cor) { const el = document.getElementById('configMsg'); el.style.color = cor; el.innerText = msg; setTimeout(() => el.innerText = '', 3500); }
+
+        window.onload = async () => { 
+            const g = localStorage.getItem('ultimoGrupoSelecionado'); 
+            if (g) document.getElementById('filtroGrupo').value = g; 
+            await carregarDadosGlobais();
+            renderizarEstacoes(); 
+        };
+    </script>
+</body>
+</html>
