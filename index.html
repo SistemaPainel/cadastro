@@ -144,9 +144,9 @@
                             <button class="btn-confirmar" style="background: #374151; padding: 5px 10px; font-size: 10px; border-radius:4px;" onclick="excluirModeloCompleto()">🗑️ Remover Modelo</button>
                         </div>
                         
-                        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px; color:#4b5563;">Adicionar Tamanhos (separe por vírgula para lote):</label>
+                        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px; color:#4b5563;">Adicionar Tamanhos (separe por ponto e vírgula para lote):</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                            <input type="text" id="configNovoTamanho" class="input-box" style="margin-bottom:0; flex: 1; padding:6px;" placeholder="Ex: 35, 36, 37, 38X" autocomplete="off">
+                            <input type="text" id="configNovoTamanho" class="input-box" style="margin-bottom:0; flex: 1; padding:6px;" placeholder="Ex: 35; 36; 9,5/10,5" autocomplete="off">
                             <button class="btn-confirmar" style="background: #16a34a; padding: 0 15px; font-size: 11px; border-radius:4px;" onclick="adicionarTamanhosLote()">💾 Adicionar</button>
                         </div>
 
@@ -176,11 +176,9 @@
         const FIREBASE_SECRET = "";
         const AUTH = FIREBASE_SECRET && !/^https?:\/\//i.test(FIREBASE_SECRET) ? `?auth=${encodeURIComponent(FIREBASE_SECRET)}` : "";
 
-        // Remover defaults fixos. Apenas estruturas vazias na inicialização
         let dataMap = {};
         let usuariosAutorizados = {};
 
-        // SINCRONIZAÇÃO TOTAL EXCLUSIVA COM O FIREBASE
         async function carregarDadosGlobais() {
             try {
                 const response = await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`);
@@ -190,7 +188,6 @@
                     dataMap = config.dataMap || { "VAZIO": ["VAZIO"] };
                     usuariosAutorizados = config.usuarios || {};
                 } else {
-                    // Estado inicial caso o Firebase esteja 100% limpo
                     dataMap = { "VAZIO": ["VAZIO"] };
                     usuariosAutorizados = {};
                     await salvarConfiguracaoGlobal(); 
@@ -211,7 +208,6 @@
             } catch (e) { console.error("Erro ao salvar dados no banco:", e); }
         }
 
-        // FUNÇÕES DO PAINEL ADMIN (ENGRENAGEM)
         async function verificarSenhaConfig() {
             const senha = await customPrompt("Acesso Restrito!\nDigite a senha administrativa:");
             if (senha === "14490") abrirPainelConfig();
@@ -225,7 +221,6 @@
             
             document.getElementById('configModalOverlay').style.display = 'flex'; 
             
-            // RESOLUÇÃO DO BUG DO SELECT2 NA MODAL
             $('#configModeloSelect').select2({ 
                 placeholder: "Pesquise um modelo para editar...",
                 dropdownParent: $('#configModalOverlay'),
@@ -245,7 +240,6 @@
 
         function fecharConfig() { document.getElementById('configModalOverlay').style.display = 'none'; }
 
-        // 1. CRIAR NOVO MODELO PELO NOME ESCRITO
         async function criarNovoModelo() {
             const inputNome = document.getElementById('configNovoModeloNome');
             const nomeModelo = inputNome.value.trim().toUpperCase();
@@ -257,11 +251,11 @@
                 return;
             }
             
-            dataMap[nomeModelo] = ["ÚNICO"]; // Inicializa com valor padrão
+            dataMap[nomeModelo] = ["ÚNICO"]; 
             await salvarConfiguracaoGlobal();
             
             inputNome.value = '';
-            mostrarMsgConfig(`\u2705 Modelo ${nomeModelo} cadastrado!`, "#2e7d32");
+            mostrarMsgConfig(`✅ Modelo ${nomeModelo} cadastrado!`, "#2e7d32");
             
             atualizarSelectModelosConfig();
             $('#configModeloSelect').val(nomeModelo).trigger('change');
@@ -282,12 +276,18 @@
             const container = document.getElementById('listaTamanhosAtuais');
             container.innerHTML = '';
             
-            if(!dataMap[modelo] || dataMap[modelo].length === 0) {
+            let tamanhos = dataMap[modelo];
+            if (tamanhos && !Array.isArray(tamanhos)) {
+                tamanhos = Object.values(tamanhos);
+                dataMap[modelo] = tamanhos; 
+            }
+            
+            if(!tamanhos || tamanhos.length === 0) {
                 container.innerHTML = '<span style="font-size:11px; color:#999; font-style:italic;">Nenhum tamanho cadastrado.</span>';
                 return;
             }
             
-            dataMap[modelo].forEach(tam => {
+            tamanhos.forEach(tam => {
                 const badge = document.createElement('span');
                 badge.style.cssText = "background:#f3f4f6; color:#1f2937; padding:4px 10px; border-radius:15px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:6px; border:1px solid #d1d5db;";
                 badge.innerHTML = `${tam} <span style="color:#d32f2f; cursor:pointer; font-weight:900;" onclick="removerTamanhoEspecifico('${modelo}', '${tam}')">✕</span>`;
@@ -295,18 +295,22 @@
             });
         }
 
-        // 2. ADICIONAR VÁRIOS TAMANHOS DE UMA VEZ POR VÍRGULA
         async function adicionarTamanhosLote() {
-            const mod = document.getElementById('configModeloSelect').value;
+            const mod = $('#configModeloSelect').val();
             const inputTam = document.getElementById('configNovoTamanho');
             const textoLote = inputTam.value.trim();
             
             if(!mod || !textoLote) { mostrarMsgConfig("⚠️ Insira os tamanhos.", "#d32f2f"); return; }
             
-            // Divide o texto pelas vírgulas e limpa espaços vazios
-            const tamanhosProcessados = textoLote.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+            const tamanhosProcessados = textoLote.split(';').map(t => t.trim().toUpperCase()).filter(Boolean);
             
-            if(!dataMap[mod]) dataMap[mod] = [];
+            if(!dataMap[mod]) {
+                dataMap[mod] = [];
+            } else if (!Array.isArray(dataMap[mod])) {
+                dataMap[mod] = Object.values(dataMap[mod]);
+            }
+            
+            dataMap[mod] = dataMap[mod].map(String);
             
             let inseridos = 0;
             tamanhosProcessados.forEach(tam => {
@@ -323,7 +327,7 @@
                 dataMap[mod].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
                 await salvarConfiguracaoGlobal();
                 
-                mostrarMsgConfig(`\u2705 ${inseridos} tamanho(s) injetado(s) com sucesso!`, "#2e7d32");
+                mostrarMsgConfig(`✅ ${inseridos} tamanho(s) injetado(s) com sucesso!`, "#2e7d32");
                 inputTam.value = '';
                 renderListaTamanhosBadges(mod);
                 renderizarEstacoes();
@@ -334,7 +338,10 @@
 
         async function removerTamanhoEspecifico(modelo, tamanho) {
             if(!dataMap[modelo]) return;
-            dataMap[modelo] = dataMap[modelo].filter(t => t !== tamanho);
+            let tamanhos = dataMap[modelo];
+            if (!Array.isArray(tamanhos)) tamanhos = Object.values(tamanhos);
+            
+            dataMap[modelo] = tamanhos.filter(t => t !== tamanho);
             
             if(dataMap[modelo].length === 0) dataMap[modelo] = ["ÚNICO"];
             
@@ -344,7 +351,6 @@
             mostrarMsgConfig("✕ Tamanho removido.", "#757575");
         }
 
-        // 3. EXCLUIR MODELO COMPLETO E TODA SUA GRADE
         async function excluirModeloCompleto() {
             const mod = document.getElementById('configModeloSelect').value;
             if(!mod) return;
@@ -393,7 +399,6 @@
             document.getElementById('configNovoCracha').value = ''; document.getElementById('configNovoNome').value = '';
         }
 
-        // RENDERIZAÇÃO PRINCIPAL DO GRID DE CÉLULAS
         const grid = document.getElementById('stationGrid');
         
         async function renderizarEstacoes() {
@@ -446,7 +451,6 @@
                     }
                 }
 
-                // Inicialização otimizada do Select2 na listagem principal
                 $('.sel-modelo').select2({
                     placeholder: "Pesquise ou selecione...",
                     allowClear: true,
@@ -472,7 +476,11 @@
         function popularTamanhos(el, modelo, sel) {
             el.innerHTML = '<option value="">Selecionar</option>';
             if (modelo && dataMap[modelo]) {
-                dataMap[modelo].forEach(s => { 
+                let tamanhosParaExibir = dataMap[modelo];
+                if (!Array.isArray(tamanhosParaExibir)) {
+                    tamanhosParaExibir = Object.values(tamanhosParaExibir);
+                }
+                tamanhosParaExibir.forEach(s => { 
                     const o = document.createElement('option'); 
                     o.value = s; o.textContent = s; 
                     if (s === sel) o.selected = true; el.appendChild(o); 
