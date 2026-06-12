@@ -176,8 +176,7 @@
         const FIREBASE_SECRET = "";
         const AUTH = FIREBASE_SECRET && !/^https?:\/\//i.test(FIREBASE_SECRET) ? `?auth=${encodeURIComponent(FIREBASE_SECRET)}` : "";
 
-        const defaultUsuarios = { "4014490": "Francisco Eduardo" , "4019841": "RODRIGO SANTOS","4019523": "Maria Dias", "4019524": "Rafael Matos","4020729": "Rafael Miranda"};
-        
+        // Remover defaults fixos. Apenas estruturas vazias na inicialização
         let dataMap = {};
         let usuariosAutorizados = {};
 
@@ -187,19 +186,19 @@
                 const response = await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`);
                 const config = await response.json();
                 
-                if (config && config.dataMap) {
-                    dataMap = config.dataMap;
-                    usuariosAutorizados = config.usuarios || defaultUsuarios;
+                if (config) {
+                    dataMap = config.dataMap || { "VAZIO": ["VAZIO"] };
+                    usuariosAutorizados = config.usuarios || {};
                 } else {
                     // Estado inicial caso o Firebase esteja 100% limpo
                     dataMap = { "VAZIO": ["VAZIO"] };
-                    usuariosAutorizados = defaultUsuarios;
+                    usuariosAutorizados = {};
                     await salvarConfiguracaoGlobal(); 
                 }
             } catch (e) { 
                 console.error("Erro ao carregar dados do Firebase.", e); 
                 dataMap = { "VAZIO": ["VAZIO"] };
-                usuariosAutorizados = defaultUsuarios;
+                usuariosAutorizados = {};
             }
         }
 
