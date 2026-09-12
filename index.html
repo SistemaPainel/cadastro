@@ -95,6 +95,7 @@
             <div class="filter-box">
                 <label>GRUPO</label>
                 <select id="filtroGrupo" onchange="trocarGrupo()">
+                    <option value="11337"> 11337</option>
                     <option value="Grupo 1">Grupo 1</option><option value="Grupo 2">Grupo 2</option>
                     <option value="Grupo 3">Grupo 3</option><option value="Grupo 4">Grupo 4</option>
                     <option value="Grupo 5">Grupo 5</option><option value="Grupo 6">Grupo 6</option>
@@ -172,7 +173,7 @@
     </div>
 
     <script>
-        const FIREBASE_URL = "https://gen-lang-client-0514567939-default-rtdb.firebaseio.com";
+        const FIREBASE_URL = "https://projeto-hackton-618ca-default-rtdb.firebaseio.com";
         const FIREBASE_SECRET = "";
         const AUTH = FIREBASE_SECRET && !/^https?:\/\//i.test(FIREBASE_SECRET) ? `?auth=${encodeURIComponent(FIREBASE_SECRET)}` : "";
 
@@ -403,7 +404,14 @@
         
         async function renderizarEstacoes() {
             const grupo = document.getElementById('filtroGrupo').value;
-            const numEstacoes = (grupo === "Grupo 4" || grupo === "Grupo 5") ? 48 : 36;
+            
+            let numEstacoes = 36; // Padrão
+            if (grupo === "Grupo 4" || grupo === "Grupo 5") {
+                numEstacoes = 48;
+            } else if (grupo === "11337") {
+                numEstacoes = 18; // 3 máquinas x 6 estações
+            }
+
             document.getElementById('msgCarregando').style.display = 'block';
             grid.style.opacity = '0.5';
 
@@ -428,6 +436,18 @@
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.setAttribute('data-status', salvo ? salvo.status : "parada");
+
+                    // Adiciona o seletor de Matriz apenas para o Grupo 11337
+                    const campoMatriz = (grupo === "11337") ? `
+                        <div class="input-box">
+                            <label>TIPO DE MATRIZ</label>
+                            <select class="sel-matriz">
+                                <option value="">Selecionar...</option>
+                                <option value="DUPLA">DUPLA</option>
+                                <option value="MONA">MONA</option>
+                            </select>
+                        </div>` : '';
+
                     card.innerHTML = `
                         <div class="card-header"><b>ESTAÇÃO ${i}</b></div>
                         <div class="input-box">
@@ -441,7 +461,8 @@
                             <select class="sel-tamanho">
                                 <option value="">Escolha o modelo</option>
                             </select>
-                        </div>`;
+                        </div>
+                        ${campoMatriz}`;
                     grid.appendChild(card);
                     
                     const selectMod = card.querySelector('.sel-modelo');
@@ -449,8 +470,12 @@
                         selectMod.value = salvo.modelo;
                         popularTamanhos(card.querySelector('.sel-tamanho'), salvo.modelo, salvo.tamanho);
                     }
-                }
 
+                    const selectMatriz = card.querySelector('.sel-matriz');
+                    if (selectMatriz && salvo && salvo.tipoMatriz) {
+                        selectMatriz.value = salvo.tipoMatriz;
+                    }
+                }
                 $('.sel-modelo').select2({
                     placeholder: "Pesquise ou selecione...",
                     allowClear: true,
@@ -511,6 +536,8 @@
                 document.querySelectorAll('.card').forEach((c, i) => {
                     const m = c.querySelector('.sel-modelo').value;
                     const t = c.querySelector('.sel-tamanho').value;
+                    const elMatriz = c.querySelector('.sel-matriz');
+                    const matrizVal = elMatriz ? elMatriz.value : "";
                     const estacaoNum = i + 1;
 
                     if(m && t) {
@@ -519,7 +546,7 @@
                         const prTimeAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].prTime) ? dadosAtuais[estacaoNum].prTime : "";
 
                         alocacaoObj[estacaoNum] = { 
-                            grupo: grupo, estacao: estacaoNum, modelo: m, tamanho: t, 
+                            grupo: grupo, estacao: estacaoNum, modelo: m, tamanho: t, tipoMatriz: matrizVal,
                             status: statusAtual, dataHora: agora, cracha: crachaDigitado,
                             prManual: prManualAtual, prTime: prTimeAtual 
                         };
@@ -563,9 +590,10 @@
             });
 
             if (confirmar) {
-                $('.sel-modelo').val(null).trigger('change');
+               $('.sel-modelo').val(null).trigger('change');
                 document.querySelectorAll('.card').forEach(card => {
                     if (card.querySelector('.sel-tamanho')) card.querySelector('.sel-tamanho').innerHTML = '<option value="">Selecionar</option>';
+                    if (card.querySelector('.sel-matriz')) card.querySelector('.sel-matriz').value = '';
                 });
             }
         }
