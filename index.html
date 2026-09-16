@@ -450,9 +450,9 @@
                     // LÓGICA DE SEPARAÇÃO POR MÁQUINA (APENAS GRUPO 11337)
                     if (grupo === "11337") {
                         let headerText = "";
-                        if (i === 1) headerText = "📠 MÁQUINA 1 (Estações 1 a 6)";
-                        else if (i === 7) headerText = "📠 MÁQUINA 2 (Estações 7 a 12)";
-                        else if (i === 13) headerText = "📠 MÁQUINA 3 (Estações 13 a 18)";
+                        if (i === 1) headerText = "📠 MÁQUINA 1 ";
+                        else if (i === 7) headerText = "📠 MÁQUINA 2";
+                        else if (i === 13) headerText = "📠 MÁQUINA 3 ";
 
                         if (headerText) {
                             const header = document.createElement('div');
@@ -467,6 +467,12 @@
                     card.className = 'card';
                     card.setAttribute('data-status', salvo ? salvo.status : "parada");
 
+                    // LÓGICA DE EXIBIÇÃO: Reinicia a contagem de 1 a 6 para o Grupo 11337
+                    let numExibicao = i;
+                    if (grupo === "11337") {
+                        numExibicao = ((i - 1) % 6) + 1;
+                    }
+
                     // Adiciona o seletor de Matriz apenas para o Grupo 11337
                     const campoMatriz = (grupo === "11337") ? `
                         <div class="input-box">
@@ -479,7 +485,7 @@
                         </div>` : '';
 
                     card.innerHTML = `
-                        <div class="card-header"><b>ESTAÇÃO ${i}</b></div>
+                        <div class="card-header" title="ID Real no Banco: ${i}"><b>ESTAÇÃO ${numExibicao}</b></div>
                         <div class="input-box">
                             <label>MODELO</label>
                             <select class="sel-modelo">
