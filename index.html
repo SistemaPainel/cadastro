@@ -1,655 +1,322 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Alocação Dinâmico</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Novo endereço — Painel de Abastecimento</title>
 
-    <style>
-        :root { --primary-red: #d32f2f; --bg-body: #f9f9fb; --border-color: #e0e0e0; --text-main: #333; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: var(--bg-body); padding: 20px; color: var(--text-main); }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; }
-        .sub-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 20px; }
-        .btn-group { display: flex; gap: 10px; width: auto; }
-        .btn { border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; gap: 8px; text-transform: uppercase; justify-content: center; align-items: center; }
-        .btn-save { background-color: var(--primary-red); color: white; }
-        .btn-clear { background-color: #757575; color: white; }
-        .btn-clear:hover { background-color: #616161; }
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .card { background: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; }
-        .input-box { margin-bottom: 10px; }
-        .input-box label { display: block; font-size: 9px; font-weight: 700; margin-bottom: 4px; color: #555;}
-        
-        .input-box select, .input-box input { width: 100%; padding: 7px; border: 1px solid var(--border-color); font-size: 11px; border-radius: 4px; outline: none; background-color: #fafafa;}
-        
-        .select2-container .select2-selection--single { height: 32px; border: 1px solid var(--border-color); border-radius: 4px; background-color: #fafafa;}
-        
-        .select2-container--default .select2-selection--single .select2-selection__rendered { 
-            line-height: 30px; 
-            font-size: 11px; 
-            font-weight: bold; 
-            color: var(--text-main);
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            white-space: nowrap;
-            padding-right: 25px;
-        }
-        
-        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 30px; }
-        .select2-dropdown { border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100000; }
-        .select2-search--dropdown .select2-search__field { font-size: 11px; padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
-        .select2-container--default .select2-results > .select2-results__options { max-height: 400px; }
-        .select2-results__option { font-size: 10px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #444; }
-        .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background-color: var(--primary-red); color: white; font-weight: bold; }
-        
-        .filter-box { display: flex; flex-direction: column; min-width: 150px; }
-        .filter-box label { font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
-        .filter-box select { padding: 8px; font-weight: bold; border-radius: 5px; border: 1px solid #ccc; font-size: 14px;}
-        .actions-container { display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap; justify-content: flex-end; }
-        
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  ONDE COLOCAR OS LINKS NOVOS                                         ║
+  ║  Cole o endereço de cada tela entre as aspas, logo abaixo.           ║
+  ║  Deixe "" (vazio) para esconder o botão daquela tela.                ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<script>
+  const LINKS = {
+    monitor:     "https://sites.google.com/grupodass.com.br/monitor",   // ← cole aqui o link do MONITOR
+    cadastro:    "https://sites.google.com/grupodass.com.br/cadastros",   // ← cole aqui o link do CADASTRO
+    atualizador: "https://sites.google.com/grupodass.com.br/atualizador" // ← cole aqui o link do ATUALIZADOR
+  };
 
-/* Separador de Máquinas (Exclusivo 11337) */
-        .machine-header {
-            grid-column: 1 / -1; /* Faz o separador ocupar a linha toda do grid */
-            background-color: #333;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            font-size: 13px;
-            margin-top: 10px;
-            text-align: center;
-            text-transform: uppercase;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        /* Modais */
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .custom-modal-box { background: #fff; padding: 25px 20px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 320px; max-width: 90%; text-align: center; }
-        .custom-modal-box h3 { margin-top: 0; font-size: 15px; color: #333; margin-bottom: 20px; font-weight: 600; white-space: pre-line; }
-        .custom-modal-input { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; box-sizing: border-box; outline: none; font-weight: bold; }
-        .custom-modal-actions { display: flex; gap: 10px; justify-content: center; }
-        .custom-modal-actions button { padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; flex: 1; text-transform: uppercase; font-size: 12px; }
-        .btn-cancelar { background: #e0e0e0; color: #444; }
-        .btn-confirmar { background: #d32f2f; color: #fff; }
-        .config-btn { background: transparent; border: none; font-size: 24px; cursor: pointer; transition: 0.3s; padding: 5px; }
-        .config-panel { width: 600px !important; max-width: 95% !important; text-align: left !important; }
-        .config-grid { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
-        .config-section { flex: 1; border: 1px solid var(--border-color); padding: 15px; border-radius: 6px; background: #fafafa; min-width: 280px;}
-        .config-section h4 { margin-top: 0; margin-bottom: 12px; font-size: 13px; color: var(--primary-red); border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        #configMsg { height: 15px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; }
-        
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .sub-header { flex-direction: column; align-items: flex-start; }
-            .actions-container { width: 100%; justify-content: flex-start; }
-            .filter-box { width: 100%; }
-            .btn-group { width: 100%; }
-            .btn-save, .btn-clear { flex-grow: 1; }
-        }
-    </style>
+  // Texto de contato no rodapé (opcional). Ex.: "Dúvidas? Fale com a Engenharia — ramal 123"
+  const CONTATO = "";
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --fundo: #09090b;
+    --painel: #141417;
+    --borda: rgba(255,255,255,.08);
+    --texto: #f4f4f5;
+    --suave: #a1a1aa;
+    --vermelho: #ef4444;
+    --vermelho-forte: #c1121f;
+    --vermelho-escuro: #7f1018;
+    --verde: #10b981;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--texto); font-family: var(--sans); font-size: 17px; line-height: 1.55;
+    background-color: var(--fundo);
+    background-image:
+      radial-gradient(900px 480px at 12% -8%, rgba(239,68,68,.20), transparent 70%),
+      /* banda de rodagem de sola: losangos bem discretos */
+      repeating-linear-gradient(45deg,  rgba(255,255,255,.022) 0 2px, transparent 2px 18px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,.022) 0 2px, transparent 2px 18px);
+  }
+  .faixa { /* fita de sinalização de chão de fábrica */
+    height: 12px;
+    background: repeating-linear-gradient(-45deg, var(--vermelho-forte) 0 16px, #0c0c0e 16px 32px);
+  }
+  .pagina { max-width: 1040px; margin: 0 auto; padding: 36px 20px 64px; }
+
+  /* ---------- Cabeçalho ---------- */
+  .hero {
+    position: relative; overflow: hidden; border-radius: 28px;
+    background: linear-gradient(135deg, #1a1a1e 0%, #121215 60%, #1b0c0e 100%);
+    border: 1px solid var(--borda);
+    box-shadow: 0 24px 60px -30px rgba(239,68,68,.55);
+    padding: 48px 48px 44px;
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 20px; align-items: center;
+  }
+  .hero::before { /* barra lateral vermelha, como nos cards do Monitor */
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
+    background: var(--vermelho); box-shadow: 2px 0 22px rgba(239,68,68,.7);
+  }
+  .marca { display: flex; align-items: center; gap: 10px; margin: 0 0 18px;
+    font-family: var(--mono); font-weight: 800; font-size: 13px; letter-spacing: .12em; color: var(--suave); }
+  .ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--vermelho); box-shadow: 0 0 0 0 rgba(239,68,68,.6); animation: pulso 1.8s ease-out infinite; }
+  @keyframes pulso { 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+  h1 {
+    font-weight: 900; font-size: clamp(38px, 6.4vw, 72px); line-height: .98; letter-spacing: -.035em;
+    margin: 0 0 20px; text-wrap: balance;
+  }
+  h1 em { font-style: normal; color: var(--vermelho); }
+  .lead { margin: 0 0 14px; font-size: 19px; color: #d4d4d8; max-width: 46ch; }
+  .dica { margin: 0; font-size: 15px; color: var(--suave); max-width: 46ch; }
+
+  .sola { width: 100%; max-width: 300px; justify-self: center; transform: rotate(14deg); filter: drop-shadow(0 18px 28px rgba(0,0,0,.6)); }
+
+  /* ---------- Seções ---------- */
+  h2 { font-weight: 900; font-size: clamp(28px, 4vw, 38px); letter-spacing: -.025em; line-height: 1.1; margin: 56px 0 6px; }
+  .sub { margin: 0 0 24px; color: var(--suave); max-width: 60ch; }
+
+  /* ---------- Telas (cards no estilo dos cards de estação) ---------- */
+  .telas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .tela {
+    position: relative; overflow: hidden; background: var(--painel); border: 1px solid var(--borda); border-radius: 20px;
+    padding: 26px 26px 22px 32px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .tela::before { content: ''; position: absolute; left: 0; top: 0; width: 6px; height: 100%; background: var(--vermelho); box-shadow: 2px 0 15px rgba(239,68,68,.55); }
+  .tela[hidden] { display: none; }
+  .tela h3 { margin: 0; font-weight: 900; font-size: 30px; letter-spacing: -.02em; line-height: 1; }
+  .tela p { margin: 0; color: var(--suave); font-size: 16px; }
+  .acoes { margin-top: auto; padding-top: 6px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .abrir {
+    display: inline-block; text-decoration: none; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 14px 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18);
+    background: linear-gradient(135deg, var(--vermelho), var(--vermelho-forte));
+    box-shadow: 0 6px 22px rgba(239,68,68,.45);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .abrir:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(239,68,68,.6); }
+  .abrir[aria-disabled="true"] { background: transparent; color: var(--suave); border: 1px dashed #52525b; box-shadow: none; pointer-events: none; letter-spacing: .02em; text-transform: none; font-weight: 600; font-size: 15px; }
+  .copiar { background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 15px; font-weight: 600; color: #d4d4d8; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .copiar:hover { color: var(--vermelho); }
+  .copiar[hidden] { display: none; }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  /* ---------- O que mudou ---------- */
+  .mudancas { display: grid; gap: 16px; }
+  .bloco {
+    background: var(--painel); border: 1px solid var(--borda); border-radius: 20px; padding: 26px 28px;
+    display: grid; grid-template-columns: 210px 1fr; gap: 12px 28px; align-items: start;
+  }
+  .bloco h3 { margin: 0; font-weight: 900; font-size: 24px; letter-spacing: -.02em; line-height: 1.1; color: #fff; }
+  .bloco h3::after { content: ''; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--vermelho); margin-top: 10px; }
+  .bloco ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+  .bloco li { position: relative; padding-left: 22px; color: #d4d4d8; max-width: 62ch; }
+  .bloco li::before { content: ''; position: absolute; left: 0; top: .68em; width: 10px; height: 3px; border-radius: 2px; background: var(--vermelho); }
+  .bloco li b { color: #fff; font-weight: 700; }
+
+  .depara { display: grid; gap: 12px; }
+  .linha-dp { display: grid; grid-template-columns: 90px auto auto 1fr; align-items: center; gap: 12px; font-size: 16px; }
+  .rot { font-family: var(--mono); font-weight: 800; font-size: 13px; color: var(--suave); }
+  .chip { display: inline-block; padding: 7px 14px; border-radius: 10px; font-weight: 600; border: 1px solid var(--borda); background: rgba(255,255,255,.04); }
+  .chip.de { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(239,68,68,.85); }
+  .chip.para { color: #d1fae5; border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.12); }
+  .seta { color: var(--vermelho); font-weight: 900; font-size: 20px; line-height: 1; }
+
+  /* ---------- Rodapé ---------- */
+  .rodape { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--borda); font-size: 15px; color: var(--suave); display: grid; gap: 6px; }
+  .rodape p { margin: 0; }
+
+  @media (max-width: 760px) {
+    .pagina { padding: 22px 14px 44px; }
+    .hero { grid-template-columns: 1fr; padding: 32px 24px 28px 28px; border-radius: 22px; }
+    .sola { max-width: 150px; justify-self: end; margin: -34px -10px -6px 0; }
+    .bloco { grid-template-columns: 1fr; padding: 22px 20px; }
+    .linha-dp { grid-template-columns: auto auto 1fr; }
+    .linha-dp .rot { grid-column: 1 / -1; }
+    .abrir { width: 100%; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ponto { animation: none; }
+    .abrir { transition: none; }
+  }
+</style>
 </head>
+
 <body>
-    <header>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <h1>Controle de Alocação</h1>
-            <button class="config-btn" onclick="verificarSenhaConfig()" title="Configurações do Sistema">⚙️</button>
-        </div>
-    </header>
-    
-    <div class="sub-header">
-        <div>
-            <h2>🔖 Configuração Dinâmica</h2>
-            <p>Dados centralizados na nuvem. Selecione com busca inteligente.</p>
-        </div>
-        <div class="actions-container">
-            <div class="filter-box">
-                <label>GRUPO</label>
-                <select id="filtroGrupo" onchange="trocarGrupo()">
-                    <option value="11337"> 11337</option>
-                    <option value="Grupo 1">Grupo 1</option><option value="Grupo 2">Grupo 2</option>
-                    <option value="Grupo 3">Grupo 3</option><option value="Grupo 4">Grupo 4</option>
-                    <option value="Grupo 5">Grupo 5</option><option value="Grupo 6">Grupo 6</option>
-                    <option value="Grupo 7">Grupo 7</option><option value="Grupo 8">Grupo 8</option>
-                </select>
-            </div>
-            <div class="btn-group">
-                <button id="btnLimpar" class="btn btn-clear" onclick="limparAlocacao()">🗑️ Limpar</button>
-                <button id="btnSalvar" class="btn btn-save" onclick="salvarAlocacao()">💾 Salvar Alocação</button>
-            </div>
-        </div>
-    </div>
-    <div id="msgCarregando" style="display:none; color: #d32f2f; font-weight: bold; margin-bottom: 10px;">⌛ Sincronizando com o Firebase...</div>
-    <div class="grid-container" id="stationGrid"></div>
+<div class="faixa" aria-hidden="true"></div>
 
-    <div id="customModalOverlay" class="custom-modal-overlay">
-        <div class="custom-modal-box">
-            <h3 id="customModalMessage">Mensagem</h3>
-            <input type="password" id="customModalInput" class="custom-modal-input" placeholder="Digite seu crachá..." style="display:none;" autocomplete="off">
-            <div class="custom-modal-actions">
-                <button id="customModalBtnCancel" class="btn-cancelar">Cancelar</button>
-                <button id="customModalBtnOk" class="btn-confirmar">OK</button>
-            </div>
-        </div>
+<main class="pagina">
+
+  <header class="hero">
+    <div>
+      <p class="marca"><span class="ponto" aria-hidden="true"></span>PAINEL DE ABASTECIMENTO</p>
+      <h1>O sistema de produção <em>mudou de endereço</em></h1>
+      <p class="lead">Os links antigos deixam de funcionar. Abra cada tela pelos botões abaixo e troque os favoritos do computador e do celular pelos novos.</p>
+      <p class="dica">Depois de abrir a tela nova, salve nos favoritos e apague o link antigo.</p>
     </div>
 
-    <div id="configModalOverlay" class="custom-modal-overlay">
-        <div class="custom-modal-box config-panel">
-            <h3 style="text-align: center; font-size: 18px; margin-bottom: 15px;">⚙️ Painel de Configurações Global</h3>
-            <div id="configMsg"></div>
-            <div class="config-grid">
-                
-                <div class="config-section" style="flex: 1 1 100%;">
-                    <h4>📐 Gerenciar Modelos e Grades/Tamanhos</h4>
-                    
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <input type="text" id="configNovoModeloNome" class="input-box" style="margin-bottom:0; flex: 1;" placeholder="Digitar nome de NOVO modelo..." autocomplete="off">
-                        <button class="btn-confirmar" style="padding: 0 15px; font-size: 11px; white-space: nowrap; border-radius:4px;" onclick="criarNovoModelo()">➕ Criar Modelo</button>
-                    </div>
+    <!-- Sola de calçado (vista de baixo) com banda de rodagem e costura -->
+    <svg class="sola" viewBox="0 0 280 620" role="img" aria-label="Sola de calçado">
+      <defs>
+        <linearGradient id="gSola" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff5a5f"/><stop offset=".55" stop-color="#d7263d"/><stop offset="1" stop-color="#7f1018"/>
+        </linearGradient>
+        <pattern id="trava" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="20" height="20" fill="none"/>
+          <path d="M0 0H20M0 0V20" stroke="#000" stroke-opacity=".34" stroke-width="3"/>
+        </pattern>
+        <clipPath id="cSola">
+          <path id="pSola" d="M130 14 C186 8 246 46 254 124 C260 186 250 236 228 296 C214 336 210 376 218 436 C226 506 210 584 140 598 C70 590 52 516 62 446 C70 386 66 336 54 286 C36 226 28 166 40 106 C52 46 88 18 130 14 Z"/>
+        </clipPath>
+      </defs>
+      <path d="M130 14 C186 8 246 46 254 124 C260 186 250 236 228 296 C214 336 210 376 218 436 C226 506 210 584 140 598 C70 590 52 516 62 446 C70 386 66 336 54 286 C36 226 28 166 40 106 C52 46 88 18 130 14 Z" fill="url(#gSola)"/>
+      <g clip-path="url(#cSola)">
+        <rect width="280" height="620" fill="url(#trava)"/>
+        <!-- vincos de flexão do antepé e do meio do pé -->
+        <path d="M30 170 C100 150 190 150 270 172" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="7"/>
+        <path d="M40 330 C110 318 180 318 240 332" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="7"/>
+        <!-- calcanhar liso (onde fica a marcação) -->
+        <ellipse cx="140" cy="500" rx="62" ry="64" fill="#a51322"/>
+      </g>
+      <!-- costura da sola -->
+      <path d="M130 30 C180 26 236 60 242 128 C248 186 238 234 216 294 C202 336 198 378 206 438 C212 500 198 568 140 582 C82 574 66 512 74 448 C82 388 78 336 66 288 C48 230 42 170 52 112 C62 58 94 34 130 30 Z"
+            fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-dasharray="9 7" stroke-linecap="round"/>
+      <path d="M130 14 C186 8 246 46 254 124 C260 186 250 236 228 296 C214 336 210 376 218 436 C226 506 210 584 140 598 C70 590 52 516 62 446 C70 386 66 336 54 286 C36 226 28 166 40 106 C52 46 88 18 130 14 Z" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="3"/>
+      <text x="140" y="518" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="800" font-size="46" fill="#fff" fill-opacity=".9">42</text>
+    </svg>
+  </header>
 
-                    <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px; color:#555;">Selecionar Modelo para Editar/Excluir:</label>
-                    <select id="configModeloSelect" class="input-box" style="width:100%;" onchange="selecionarModeloParaEditar()"></select>
-                    
-                    <div id="areaEdicaoModelo" style="display: none; margin-top: 15px; padding: 12px; background: #f3f4f6; border-radius: 6px; border: 1px solid #e5e7eb;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong id="lblModeloSelecionado" style="font-size: 12px; color: #1f2937;"></strong>
-                            <button class="btn-confirmar" style="background: #374151; padding: 5px 10px; font-size: 10px; border-radius:4px;" onclick="excluirModeloCompleto()">🗑️ Remover Modelo</button>
-                        </div>
-                        
-                        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px; color:#4b5563;">Adicionar Tamanhos (separe por ponto e vírgula para lote):</label>
-                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                            <input type="text" id="configNovoTamanho" class="input-box" style="margin-bottom:0; flex: 1; padding:6px;" placeholder="Ex: 35; 36; 9,5/10,5" autocomplete="off">
-                            <button class="btn-confirmar" style="background: #16a34a; padding: 0 15px; font-size: 11px; border-radius:4px;" onclick="adicionarTamanhosLote()">💾 Adicionar</button>
-                        </div>
+  <section aria-labelledby="t-telas">
+    <h2 id="t-telas">Onde está cada tela</h2>
+    <p class="sub">Toque no botão da tela que você usa.</p>
 
-                        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 4px; color:#4b5563;">Grade Atual (Clique no ✕ para remover):</label>
-                        <div id="listaTamanhosAtuais" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; background: white; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"></div>
-                    </div>
-                </div>
+    <div class="telas">
+      <article class="tela" data-chave="monitor">
+        <h3>Monitor</h3>
+        <p>Painel das estações em tempo real: status, giro, refilagem e reprovados de cada injetora.</p>
+        <div class="acoes"><a class="abrir" href="#">Abrir o Monitor</a><button type="button" class="copiar">Copiar link</button></div>
+      </article>
 
-                <div class="config-section" style="flex: 1 1 100%;">
-                    <h4>👤 Adicionar Funcionário / Operador</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 10px;">
-                        <input type="number" id="configNovoCracha" class="input-box" style="margin-bottom:0;" placeholder="Nº Crachá..." autocomplete="off">
-                        <input type="text" id="configNovoNome" class="input-box" style="margin-bottom:0;" placeholder="Nome do Funcionário..." autocomplete="off">
-                    </div>
-                    <button class="btn-confirmar" style="width:100%; padding: 8px; border-radius:4px;" onclick="adicionarCracha()">Salvar Crachá</button>
-                </div>
+      <article class="tela" data-chave="cadastro">
+        <h3>Cadastro</h3>
+        <p>Define qual modelo e qual tamanho está rodando em cada estação.</p>
+        <div class="acoes"><a class="abrir" href="#">Abrir o Cadastro</a><button type="button" class="copiar">Copiar link</button></div>
+      </article>
 
-            </div>
-            <div class="custom-modal-actions">
-                <button onclick="fecharConfig()" class="btn-cancelar" style="flex: none; width: 100%;">Concluir e Fechar</button>
-            </div>
-        </div>
+      <article class="tela" data-chave="atualizador">
+        <h3>Atualizador</h3>
+        <p>Cole aqui o relatório do ERP para atualizar a produção no painel.</p>
+        <div class="acoes"><a class="abrir" href="#">Abrir o Atualizador</a><button type="button" class="copiar">Copiar link</button></div>
+      </article>
     </div>
+  </section>
 
-    <script>
-        const FIREBASE_URL = "https://projeto-hackton-618ca-default-rtdb.firebaseio.com";
-        const FIREBASE_SECRET = "";
-        const AUTH = FIREBASE_SECRET && !/^https?:\/\//i.test(FIREBASE_SECRET) ? `?auth=${encodeURIComponent(FIREBASE_SECRET)}` : "";
+  <section aria-labelledby="t-mudou">
+    <h2 id="t-mudou">O que mudou no sistema</h2>
+    <p class="sub">Além do endereço novo, o sistema ficou mais rápido e ganhou recursos para o dia a dia da produção.</p>
 
-        let dataMap = {};
-        let usuariosAutorizados = {};
+    <div class="mudancas">
 
-        async function carregarDadosGlobais() {
-            try {
-                const response = await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`);
-                const config = await response.json();
-                
-                if (config) {
-                    dataMap = config.dataMap || { "VAZIO": ["VAZIO"] };
-                    usuariosAutorizados = config.usuarios || {};
-                } else {
-                    dataMap = { "VAZIO": ["VAZIO"] };
-                    usuariosAutorizados = {};
-                    await salvarConfiguracaoGlobal(); 
-                }
-            } catch (e) { 
-                console.error("Erro ao carregar dados do Firebase.", e); 
-                dataMap = { "VAZIO": ["VAZIO"] };
-                usuariosAutorizados = {};
-            }
+      <div class="bloco">
+        <h3>Servidor e hospedagem</h3>
+        <div class="depara">
+          <div class="linha-dp"><span class="rot">DADOS</span><span class="chip de">Firebase</span><span class="seta" aria-hidden="true">→</span><span class="chip para">Google Apps Script + Drive</span></div>
+          <div class="linha-dp"><span class="rot">PÁGINAS</span><span class="chip de">GitHub</span><span class="seta" aria-hidden="true">→</span><span class="chip para">Google Sites</span></div>
+        </div>
+      </div>
+
+      <div class="bloco">
+        <h3>Monitor</h3>
+        <ul>
+          <li><b>Injetora 4 na célula 11337.</b> Agora são 24 estações, com as 4 injetoras lado a lado e estações um pouco mais largas.</li>
+          <li><b>Selo de dados.</b> A barra “Sync ERP DB” mostra data, hora e há quanto tempo o ERP foi atualizado. Fica amarela e depois vermelha quando os dados estão velhos.</li>
+          <li><b>Modo TV.</b> Está no menu Visão. Abre em tela cheia, sem menus, e troca de grupo sozinho.</li>
+          <li><b>Mais fluido no celular.</b> A rolagem não engasga e só os cards que mudaram são atualizados.</li>
+        </ul>
+      </div>
+
+      <div class="bloco">
+        <h3>Cadastro</h3>
+        <ul>
+          <li><b>Injetora 4 da célula 11337,</b> com 6 estações, como no Monitor.</li>
+        </ul>
+      </div>
+
+      <div class="bloco">
+        <h3>Atualizador</h3>
+        <ul>
+          <li><b>Barra de progresso</b> durante o envio e <b>resumo</b> no final: quantas linhas foram lidas, aproveitadas e ignoradas.</li>
+          <li><b>Data e hora da última atualização</b> sempre visíveis no topo.</li>
+          <li><b>Avisos claros.</b> Se o relatório estiver incompleto ou a conexão cair, a tela explica o que houve e deixa tentar de novo sem colar tudo outra vez.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="rodape">
+    <p>Já salvou os novos links? Pode apagar os antigos dos favoritos.</p>
+    <p id="contato" hidden></p>
+  </footer>
+
+</main>
+
+<script>
+  (function () {
+    function ok(v) { return typeof v === 'string' && v.trim() !== ''; }
+
+    document.querySelectorAll('.tela').forEach(function (card) {
+      var link = (LINKS[card.dataset.chave] || '').trim();
+      var botao = card.querySelector('.abrir');
+      var copiar = card.querySelector('.copiar');
+
+      if (!ok(link)) {
+        // As telas mostram aviso até o link ser colado.
+        botao.removeAttribute('href');
+        botao.setAttribute('aria-disabled', 'true');
+        botao.textContent = 'Link ainda não configurado';
+        copiar.hidden = true;
+        return;
+      }
+
+      botao.href = link;
+      botao.rel = 'noopener';
+
+      copiar.addEventListener('click', function () {
+        function feito() {
+          var antes = copiar.textContent;
+          copiar.textContent = 'Link copiado';
+          setTimeout(function () { copiar.textContent = antes; }, 1800);
         }
-
-        async function salvarConfiguracaoGlobal() {
-            try {
-                await fetch(`${FIREBASE_URL}/configuracoes.json${AUTH}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ dataMap: dataMap, usuarios: usuariosAutorizados })
-                });
-            } catch (e) { console.error("Erro ao salvar dados no banco:", e); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(feito, function () { window.prompt('Copie o link:', link); });
+        } else {
+          window.prompt('Copie o link:', link);
         }
+      });
+    });
 
-        async function verificarSenhaConfig() {
-            const senha = await customPrompt("Acesso Restrito!\nDigite a senha administrativa:");
-            if (senha === "14490") abrirPainelConfig();
-            else if (senha) await customAlert("Senha incorreta!");
-        }
-
-        function abrirPainelConfig() { 
-            atualizarSelectModelosConfig();
-            document.getElementById('areaEdicaoModelo').style.display = 'none';
-            document.getElementById('configNovoModeloNome').value = '';
-            
-            document.getElementById('configModalOverlay').style.display = 'flex'; 
-            
-            $('#configModeloSelect').select2({ 
-                placeholder: "Pesquise um modelo para editar...",
-                dropdownParent: $('#configModalOverlay'),
-                width: '100%'
-            }).on('change', function() {
-                selecionarModeloParaEditar();
-            });
-        }
-
-        function atualizarSelectModelosConfig() {
-            const selectMod = document.getElementById('configModeloSelect');
-            selectMod.innerHTML = '<option value="">Selecione o Modelo...</option>';
-            Object.keys(dataMap).sort().forEach(m => {
-                if(m !== "VAZIO") selectMod.innerHTML += `<option value="${m}">${m}</option>`;
-            });
-        }
-
-        function fecharConfig() { document.getElementById('configModalOverlay').style.display = 'none'; }
-
-        async function criarNovoModelo() {
-            const inputNome = document.getElementById('configNovoModeloNome');
-            const nomeModelo = inputNome.value.trim().toUpperCase();
-            
-            if(!nomeModelo) { mostrarMsgConfig("⚠️ Digite um nome para o modelo.", "#d32f2f"); return; }
-            
-            if(dataMap[nomeModelo]) {
-                mostrarMsgConfig("⚠️ Este modelo já existe no sistema.", "#d32f2f");
-                return;
-            }
-            
-            dataMap[nomeModelo] = ["ÚNICO"]; 
-            await salvarConfiguracaoGlobal();
-            
-            inputNome.value = '';
-            mostrarMsgConfig(`✅ Modelo ${nomeModelo} cadastrado!`, "#2e7d32");
-            
-            atualizarSelectModelosConfig();
-            $('#configModeloSelect').val(nomeModelo).trigger('change');
-            renderizarEstacoes();
-        }
-
-        function selecionarModeloParaEditar() {
-            const mod = document.getElementById('configModeloSelect').value;
-            const area = document.getElementById('areaEdicaoModelo');
-            if(!mod) { area.style.display = 'none'; return; }
-            
-            area.style.display = 'block';
-            document.getElementById('lblModeloSelecionado').innerText = `Modelo Ativo: ${mod}`;
-            renderListaTamanhosBadges(mod);
-        }
-
-        function renderListaTamanhosBadges(modelo) {
-            const container = document.getElementById('listaTamanhosAtuais');
-            container.innerHTML = '';
-            
-            let tamanhos = dataMap[modelo];
-            if (tamanhos && !Array.isArray(tamanhos)) {
-                tamanhos = Object.values(tamanhos);
-                dataMap[modelo] = tamanhos; 
-            }
-            
-            if(!tamanhos || tamanhos.length === 0) {
-                container.innerHTML = '<span style="font-size:11px; color:#999; font-style:italic;">Nenhum tamanho cadastrado.</span>';
-                return;
-            }
-            
-            tamanhos.forEach(tam => {
-                const badge = document.createElement('span');
-                badge.style.cssText = "background:#f3f4f6; color:#1f2937; padding:4px 10px; border-radius:15px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:6px; border:1px solid #d1d5db;";
-                badge.innerHTML = `${tam} <span style="color:#d32f2f; cursor:pointer; font-weight:900;" onclick="removerTamanhoEspecifico('${modelo}', '${tam}')">✕</span>`;
-                container.appendChild(badge);
-            });
-        }
-
-        async function adicionarTamanhosLote() {
-            const mod = $('#configModeloSelect').val();
-            const inputTam = document.getElementById('configNovoTamanho');
-            const textoLote = inputTam.value.trim();
-            
-            if(!mod || !textoLote) { mostrarMsgConfig("⚠️ Insira os tamanhos.", "#d32f2f"); return; }
-            
-            const tamanhosProcessados = textoLote.split(';').map(t => t.trim().toUpperCase()).filter(Boolean);
-            
-            if(!dataMap[mod]) {
-                dataMap[mod] = [];
-            } else if (!Array.isArray(dataMap[mod])) {
-                dataMap[mod] = Object.values(dataMap[mod]);
-            }
-            
-            dataMap[mod] = dataMap[mod].map(String);
-            
-            let inseridos = 0;
-            tamanhosProcessados.forEach(tam => {
-                if(!dataMap[mod].includes(tam)) {
-                    dataMap[mod].push(tam);
-                    inseridos++;
-                }
-            });
-            
-            if(inseridos > 0) {
-                dataMap[mod] = dataMap[mod].filter(t => t !== "ÚNICO" && t !== "VAZIO");
-                if(dataMap[mod].length === 0) dataMap[mod] = ["ÚNICO"];
-                
-                dataMap[mod].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
-                await salvarConfiguracaoGlobal();
-                
-                mostrarMsgConfig(`✅ ${inseridos} tamanho(s) injetado(s) com sucesso!`, "#2e7d32");
-                inputTam.value = '';
-                renderListaTamanhosBadges(mod);
-                renderizarEstacoes();
-            } else {
-                mostrarMsgConfig("⚠️ Os tamanhos informados já constam no modelo.", "#d32f2f");
-            }
-        }
-
-        async function removerTamanhoEspecifico(modelo, tamanho) {
-            if(!dataMap[modelo]) return;
-            let tamanhos = dataMap[modelo];
-            if (!Array.isArray(tamanhos)) tamanhos = Object.values(tamanhos);
-            
-            dataMap[modelo] = tamanhos.filter(t => t !== tamanho);
-            
-            if(dataMap[modelo].length === 0) dataMap[modelo] = ["ÚNICO"];
-            
-            await salvarConfiguracaoGlobal();
-            renderListaTamanhosBadges(modelo);
-            renderizarEstacoes();
-            mostrarMsgConfig("✕ Tamanho removido.", "#757575");
-        }
-
-        async function excluirModeloCompleto() {
-            const mod = document.getElementById('configModeloSelect').value;
-            if(!mod) return;
-            
-            const confirmacao = await new Promise(resolve => {
-                const overlay = document.getElementById('customModalOverlay');
-                document.getElementById('customModalMessage').innerText = `⚠️ ATENÇÃO ⚠️\nDeseja deletar DEFINITIVAMENTE o modelo:\n"${mod}"\ne todas as suas variações de grade?`;
-                document.getElementById('customModalInput').style.display = 'none';
-                document.getElementById('customModalBtnCancel').style.display = 'block';
-                const b = document.getElementById('customModalBtnOk');
-                b.style.display = 'block'; b.innerText = 'Confirmar Exclusão'; overlay.style.display = 'flex';
-                b.onclick = () => { overlay.style.display = 'none'; resolve(true); };
-                document.getElementById('customModalBtnCancel').onclick = () => { overlay.style.display = 'none'; resolve(false); };
-            });
-
-            if(!confirmacao) return;
-            
-            delete dataMap[mod];
-            await salvarConfiguracaoGlobal();
-            
-            document.getElementById('areaEdicaoModelo').style.display = 'none';
-            mostrarMsgConfig(`🗑️ Modelo ${mod} removido do banco.`, "#d32f2f");
-            
-            atualizarSelectModelosConfig();
-            $('#configModeloSelect').val('').trigger('change');
-            renderizarEstacoes();
-        }
-
-        async function adicionarCracha() {
-            const cracha = document.getElementById('configNovoCracha').value.trim();
-            const nome = document.getElementById('configNovoNome').value.trim();
-            if(!cracha || !nome) { mostrarMsgConfig("⚠️ Preencha crachá e nome.", "#d32f2f"); return; }
-            usuariosAutorizados[cracha] = nome;
-            await salvarConfiguracaoGlobal();
-            try {
-                await fetch(`${FIREBASE_URL}/usuarios/${cracha}.json${AUTH}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ativo: true, cracha: cracha, nome: nome,
-                        permissoes: { telas: ['monitor'] }, role: 'operador'
-                    })
-                });
-            } catch(e) { console.error(e); }
-            mostrarMsgConfig(`✅ Crachá de ${nome} salvo globalmente!`, "#2e7d32");
-            document.getElementById('configNovoCracha').value = ''; document.getElementById('configNovoNome').value = '';
-        }
-
-        const grid = document.getElementById('stationGrid');
-        
-        async function renderizarEstacoes() {
-            const grupo = document.getElementById('filtroGrupo').value;
-            
-            let numEstacoes = 36; // Padrão
-            if (grupo === "Grupo 4" || grupo === "Grupo 5") {
-                numEstacoes = 48;
-            } else if (grupo === "11337") {
-                numEstacoes = 18; // 3 máquinas x 6 estações
-            }
-
-            document.getElementById('msgCarregando').style.display = 'block';
-            grid.style.opacity = '0.5';
-
-            try {
-                const response = await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`);
-                const raw = await response.json();
-                let dadosFirebase = {};
-                if (Array.isArray(raw)) {
-                    raw.forEach((v, i) => { if (v) dadosFirebase[i] = v; });
-                } else if (raw && typeof raw === 'object' && !raw.error) {
-                    dadosFirebase = raw;
-                }
-                
-                let modelosOptions = '<option value="">Selecionar...</option>';
-                Object.keys(dataMap).sort().forEach(m => {
-                    modelosOptions += `<option value="${m}">${m}</option>`;
-                });
-
-                grid.innerHTML = ''; 
-                for (let i = 1; i <= numEstacoes; i++) {
-                    
-                    // LÓGICA DE SEPARAÇÃO POR INJETORA (APENAS GRUPO 11337)
-                    if (grupo === "11337") {
-                        let headerText = "";
-                        if (i === 1) headerText = "⚙️ INJETORA 1 ";
-                        else if (i === 7) headerText = "⚙️ INJETORA 2";
-                        else if (i === 13) headerText = "⚙️ INJETORA  3 ";
-
-                        if (headerText) {
-                            const header = document.createElement('div');
-                            header.className = 'machine-header';
-                            header.innerHTML = `<strong>${headerText}</strong>`;
-                            grid.appendChild(header);
-                        }
-                    }
-
-                    const salvo = dadosFirebase[i]; 
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.setAttribute('data-status', salvo ? salvo.status : "parada");
-
-                    // LÓGICA DE EXIBIÇÃO: Reinicia a contagem de 1 a 6 para o Grupo 11337
-                    let numExibicao = i;
-                    if (grupo === "11337") {
-                        numExibicao = ((i - 1) % 6) + 1;
-                    }
-
-                    // Adiciona o seletor de Matriz apenas para o Grupo 11337
-                    const campoMatriz = (grupo === "11337") ? `
-                        <div class="input-box">
-                            <label>TIPO DE MATRIZ</label>
-                            <select class="sel-matriz">
-                                <option value="">Selecionar...</option>
-                                <option value="DUPLA">DUPLA</option>
-                                <option value="MONA">MONA</option>
-                            </select>
-                        </div>` : '';
-
-                    card.innerHTML = `
-                        <div class="card-header" title="ID Real no Banco: ${i}"><b>ESTAÇÃO ${numExibicao}</b></div>
-                        <div class="input-box">
-                            <label>MODELO</label>
-                            <select class="sel-modelo">
-                                ${modelosOptions}
-                            </select>
-                        </div>
-                        <div class="input-box">
-                            <label>TAMANHO</label>
-                            <select class="sel-tamanho">
-                                <option value="">Escolha o modelo</option>
-                            </select>
-                        </div>
-                        ${campoMatriz}`;
-                    grid.appendChild(card);
-                    
-                    const selectMod = card.querySelector('.sel-modelo');
-                    if (salvo && salvo.modelo) {
-                        selectMod.value = salvo.modelo;
-                        popularTamanhos(card.querySelector('.sel-tamanho'), salvo.modelo, salvo.tamanho);
-                    }
-
-                    const selectMatriz = card.querySelector('.sel-matriz');
-                    if (selectMatriz && salvo && salvo.tipoMatriz) {
-                        selectMatriz.value = salvo.tipoMatriz;
-                    }
-                }
-                
-                $('.sel-modelo').select2({
-                    placeholder: "Pesquise ou selecione...",
-                    allowClear: true,
-                    width: '100%'
-                }).on('change', function() {
-                    updateSizes(this);
-                });
-
-            } catch (e) {
-                console.error("Erro Firebase:", e);
-            } finally { 
-                document.getElementById('msgCarregando').style.display = 'none'; 
-                grid.style.opacity = '1'; 
-            }
-        }
-        
-        function updateSizes(selectElement) {
-            const val = selectElement.value;
-            const card = selectElement.closest('.card');
-            popularTamanhos(card.querySelector('.sel-tamanho'), val, "");
-        }
-        
-        function popularTamanhos(el, modelo, sel) {
-            el.innerHTML = '<option value="">Selecionar</option>';
-            if (modelo && dataMap[modelo]) {
-                let tamanhosParaExibir = dataMap[modelo];
-                if (!Array.isArray(tamanhosParaExibir)) {
-                    tamanhosParaExibir = Object.values(tamanhosParaExibir);
-                }
-                tamanhosParaExibir.forEach(s => { 
-                    const o = document.createElement('option'); 
-                    o.value = s; o.textContent = s; 
-                    if (s === sel) o.selected = true; el.appendChild(o); 
-                });
-            }
-        }
-        
-        async function salvarAlocacao() {
-            const info = await customPrompt("Para salvar a alocação do " + document.getElementById('filtroGrupo').value + ",\ninforme seu crachá:");
-            const crachaDigitado = info ? info.trim() : "";
-            const nomeUsuario = usuariosAutorizados[crachaDigitado];
-            
-            if (!nomeUsuario) { await customAlert("Acesso negado. Crachá inválido ou não cadastrado."); return; }
-
-            const btn = document.getElementById('btnSalvar'); 
-            btn.innerText = "⌛ Salvando..."; 
-            btn.disabled = true;
-
-            const grupo = document.getElementById('filtroGrupo').value;
-            const agora = new Date().toLocaleString('pt-BR');
-
-            try {
-                const respAtual = await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`);
-                const dadosAtuais = await respAtual.json() || {};
-
-                const alocacaoObj = {};
-                
-                document.querySelectorAll('.card').forEach((c, i) => {
-                    const m = c.querySelector('.sel-modelo').value;
-                    const t = c.querySelector('.sel-tamanho').value;
-                    const elMatriz = c.querySelector('.sel-matriz');
-                    const matrizVal = elMatriz ? elMatriz.value : "";
-                    const estacaoNum = i + 1;
-
-                    if(m && t) {
-                        const statusAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].status) ? dadosAtuais[estacaoNum].status : c.getAttribute('data-status') || "parada";
-                        const prManualAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].prManual !== undefined) ? dadosAtuais[estacaoNum].prManual : 0;
-                        const prTimeAtual = (dadosAtuais[estacaoNum] && dadosAtuais[estacaoNum].prTime) ? dadosAtuais[estacaoNum].prTime : "";
-
-                        alocacaoObj[estacaoNum] = { 
-                            grupo: grupo, estacao: estacaoNum, modelo: m, tamanho: t, tipoMatriz: matrizVal,
-                            status: statusAtual, dataHora: agora, cracha: crachaDigitado,
-                            prManual: prManualAtual, prTime: prTimeAtual 
-                        };
-                    }
-                });
-
-                await fetch(`${FIREBASE_URL}/alocacao/${grupo}.json${AUTH}`, { 
-                    method: 'PUT', 
-                    body: JSON.stringify(alocacaoObj) 
-                });
-
-                localStorage.setItem('alocacaoGlobalSalva', JSON.stringify({ grupo: grupo, dataHora: agora, cracha: crachaDigitado }));
-
-                try {
-                    await fetch(`${FIREBASE_URL}/logs.json${AUTH}`, {
-                        method: 'POST',
-                        body: JSON.stringify({ grupo: grupo, operador: nomeUsuario, cracha: crachaDigitado, dataHora: agora, timestamp: Date.now() })
-                    });
-                } catch(e) {}
-
-                await customAlert(`Salvo com sucesso e Sincronizado, ${nomeUsuario}!`); 
-                renderizarEstacoes();
-            } catch (e) { 
-                await customAlert('Erro de conexão ao tentar salvar.'); 
-            } finally { 
-                btn.innerText = "💾 Salvar Alocação"; 
-                btn.disabled = false; 
-            }
-        }
-
-        async function limparAlocacao() {
-            const confirmar = await new Promise(resolve => {
-                const o = document.getElementById('customModalOverlay');
-                document.getElementById('customModalMessage').innerText = "Tem certeza que deseja limpar as seleções da tela?";
-                document.getElementById('customModalInput').style.display = 'none';
-                document.getElementById('customModalBtnCancel').style.display = 'block';
-                const b = document.getElementById('customModalBtnOk');
-                b.style.display = 'block'; b.innerText = 'Sim, Limpar'; o.style.display = 'flex';
-                b.onclick = () => { o.style.display = 'none'; resolve(true); }; 
-                document.getElementById('customModalBtnCancel').onclick = () => { o.style.display = 'none'; resolve(false); };
-            });
-
-            if (confirmar) {
-               $('.sel-modelo').val(null).trigger('change');
-                document.querySelectorAll('.card').forEach(card => {
-                    if (card.querySelector('.sel-tamanho')) card.querySelector('.sel-tamanho').innerHTML = '<option value="">Selecionar</option>';
-                    if (card.querySelector('.sel-matriz')) card.querySelector('.sel-matriz').value = '';
-                });
-            }
-        }
-
-        function trocarGrupo() { 
-            localStorage.setItem('ultimoGrupoSelecionado', document.getElementById('filtroGrupo').value); 
-            renderizarEstacoes(); 
-        }
-
-        function customAlert(msg) { return new Promise(resolve => { const o = document.getElementById('customModalOverlay'); document.getElementById('customModalMessage').innerText = msg; document.getElementById('customModalInput').style.display = 'none'; document.getElementById('customModalBtnCancel').style.display = 'none'; const b = document.getElementById('customModalBtnOk'); b.style.display = 'block'; b.innerText = 'Entendi'; o.style.display = 'flex'; b.onclick = () => { o.style.display = 'none'; resolve(true); }; }); }
-        function customPrompt(msg) { return new Promise(resolve => { const o = document.getElementById('customModalOverlay'); const i = document.getElementById('customModalInput'); document.getElementById('customModalMessage').innerText = msg; i.style.display = 'block'; i.value = ''; const bc = document.getElementById('customModalBtnCancel'); const bo = document.getElementById('customModalBtnOk'); bc.style.display = 'block'; bo.style.display = 'block'; bo.innerText = 'Confirmar'; o.style.display = 'flex'; i.focus(); bo.onclick = () => { o.style.display = 'none'; resolve(i.value); }; bc.onclick = () => { o.style.display = 'none'; resolve(null); }; i.onkeypress = (e) => { if(e.key === 'Enter') bo.click(); }; }); }
-        function mostrarMsgConfig(msg, cor) { const el = document.getElementById('configMsg'); el.style.color = cor; el.innerText = msg; setTimeout(() => el.innerText = '', 3500); }
-
-        window.onload = async () => { 
-            const g = localStorage.getItem('ultimoGrupoSelecionado'); 
-            if (g) document.getElementById('filtroGrupo').value = g; 
-            await carregarDadosGlobais();
-            renderizarEstacoes(); 
-        };
-    </script>
+    if (ok(CONTATO)) {
+      var c = document.getElementById('contato');
+      c.textContent = CONTATO;
+      c.hidden = false;
+    }
+  })();
+</script>
 </body>
 </html>
